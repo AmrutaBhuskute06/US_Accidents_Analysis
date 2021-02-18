@@ -1,0 +1,831 @@
+---
+title: "R project - US Traffic Accidents"
+author: "GROUP 9 - Amber Akhtar, Amruta Bhuskute Yashwant, Darshni Vora, Sahil Raju Shah" 
+date: "November 25th, 2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE, message= FALSE, fig.align="centre"}
+knitr::opts_chunk$set(echo = FALSE)
+```
+\newpage
+$~$
+
+**Executive Summary:**
+
+Traffic accidents have been a major cause of concern across the United States for many years and it comes with the horror of increasing death rates. Despite latest models of cars coming out with new safety features aimed at reducing accidents such as rearview cameras, technology to prevent skids, lane change monitors and airbags these safety measures have frankly failed to stop accidents (Boudette, 2017). According to the estimates of a non-profit organization, National Safety Council, in 2016 alone 40,200 people have died which is a sharp increase from last year, many speculations have been made that the reason could stem from lack of attention during driving due to cell phone usage of apps such as Facebook, Snapchat and Google Maps etc. (Boudette, 2017). Also many states have reduced the number of state troopers patrolling the streets to catch speeders as well as the fact that seat belts usage is also not being enforced (Boudette, 2017).
+
+Our project is aimed at analyzing the US traffic accidents data to identify what are the causes of road accidents. This dataset includes information on weather conditions, temperature, wind_chill, visibility as well as road fixture information including any bumps, crossing signals and railroad crossings etc. during the time the accidents took place. It also shows the cities and states where the accidents are occurring. We formulated our hypothesis based on this information of whether weather conditions played a role in the accidents and in which regions of the country are the most accidents occurring. In addition to identifying the reasons for the accidents we also wanted to identify whether there are enough hospitals in the areas to accommodate the increasing number of accidents. If there are shortages we want to make recommendations to the local government to consider adding more hospitals that in turn could help save lives.
+
+We conducted a number of exploratory analyses on the data that helped in our hypothesis testing which included identifying which US coasts had the most accidents by longitude and latitude, time zone, city and state, identifying the most severe accidents by city and state. We also explored the number of accidents by weather condition type so which condition saw the highest number of accidents as well as identifying the most severe accidents by time of day i.e. day or night.
+
+Through our analysis of the accidents and hospital dataset our aim was to build a model that could identify what relationship Severity had with the other variables so that we could identify the most significant variables that can be used to categorize accidents as most severe to not severe. We used several algorithms such as linear regression, linear discriminant analysis and random forest regression to help identify which model can best meet our objective.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+if(!require("pacman"))install.packages("pacman")
+pacman::p_load(caret, data.table, MASS, ggplot2, gains, dplyr,
+               tidyverse, rmarkdown,latexpdf, knitr, Rtools, tinytex, Reshape, Reshape2, maps, mlbench,ggmap,usmap,mosaic,forecast,leaps,rpart,rpart.plot,randomForest,gbm,tree,ROCR,inserttable)
+options(digits = 4)
+#search()
+```
+
+$~$
+
+\newpage 
+**Dataset Description:**
+**US Traffic Accidents – A Countrywide Traffic Accident Dataset (2016-2020)** 
+
+  
+To conduct our analysis we used a dataset related to accidents in the United States covering all 49 states during the time of February 2016 to June 2020 ([link to the dataset])(https://www.kaggle.com/sobhanmoosavi/us-accidents).
+
+The dataset consists of 3.5 million records with 49 variables. The dataset contains information about the various accidents, the variables describing the accidents include:
+
+* The start and end times of the accidents
+* The longitude and latitude of the location of the accidents
+* The severity of the accidents ranging from 0 – 4; 4 being most severe
+* Street number, name, city, county, state, zipcode and country where the accidents have occurred.
+*	Time zone shows the time zone in which the accidents have occurred.
+*	There are weather related variables including: temperature, visibility, wind chill, wind direction, pressure, humidity, weather condition i.e. rain, snow etc. that happened at the time of the accidents.
+*	There are road fixture related variables such as bump (speed bump), railway crossing, roundabout, traffic signal, stop sign etc. at the location of the accidents.
+*	Time of the day variables including sunrise_sunset, astronomical twilight, nautical twilight and civil twilight. These indicated whether the accident occurred during day or night hours.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+library(data.table)
+US_accidents <- read.csv("US Accidents updated.csv")
+```
+$~$
+**USA hospitals – Hospitals across the USA:**
+https://www.kaggle.com/carlosaguayo/usa-hospitals
+
+
+The second dataset is the hospital dataset from Kaggle which contains location information about hospitals in each of 50 states of US. The dataset consists of 34 columns and around 1 million records. The variables of the dataset describe the hospitals around the country including:
+
+* Hospital name, address, city, county, state, zip and telephone numbers.
+* Number of beds available in that hospital
+* Status of the hospital whether open or closed.
+* Type of hospital – the hospitals are categorized as either general acute, children, special, psychiatric, critical access, long term care, military, women etc. 
+* Trauma – whether the hospital has trauma facilities or not
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+library(data.table)
+US_Hospitals <- read.csv("Hospitals.csv")
+```
+
+$~$
+\newpage
+**Data Cleaning:**
+
+So a number of challenges were discovered within the dataset and had to be rectified. This dataset contains traffic related information from 2016 to 2020 we decided to focus on the data from years 2019 to 2020. So we removed observations from 2016 to 2018.
+We also removed certain columns and kept those columns that were relevant to our analysis that were relevant to our hypothesis testing. Since we are analyzing the areas of the US with high traffic rates and how the weather conditions are impacting the rate of accidents. So based on this we decided to keep the following columns:
+
+
+1.	Severity – how the severity of accidents impacted the traffic. 1 least severe – 4 most severe.
+2.	Start Time – start time of the accident according to local timezone
+3.	End Time – end time of the accident according to local timezone
+4.	Start_Lat – shows the latitude in GPS of the start point
+5.	Start_Lang – shows the longitude in GPS of the start point
+6.	City 
+7.	County
+8.	State
+9.	Time zone – shows the time zone of the location of the accident
+10.	Temperature (F) – shows the temperature in Fahrenheit
+11.	Visibility
+12.	Weather Condition – rain, snow, fair etc.
+13.	Amenity – the presence of amenity in a nearby location
+14.	Bump – presence of a speed bump or hump in the accident location
+15.	Crossing
+16.	Give way
+17.	Junction
+18.	No exit
+19.	Railway
+20.	Roundabout
+21.	Station
+22.	Stop
+23.	Traffic calming
+24.	Traffic signal
+25.	Sunrise_Sunset
+$~$
+\newpage
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+Acc_1  <- US_accidents[,c(4,5,6,7,8,16,17,18,21,24,28,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46)]
+head(Acc_1,5)
+
+```
+$~$
+We also found that various columns have missing values so we removed the NA values from those columns.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+Accidents <- Acc_1 %>%
+            na_if(" ") %>% 
+            na.omit()
+```
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+Accidents.dt <- as.data.table(Accidents)
+ACcidents.df <- as.data.frame(Accidents)
+
+```
+
+$~$
+\newpage
+**Exploratory Data Analysis:**
+
+The purpose of our analysis is to build a model that focuses on the states where the rate of accidents are highest and are the most severe. We will use this model in collaboration with the information from the hospital dataset to identify which states are lacking hospital beds so that we can make recommendations to the local government to increase resources and finance to accommodate more beds in those states with the highest severe accidents and help save precious lives. 
+To meet this goal we need to focus on the following data requirements:
+
+1. Data about accidents happening in the east coast and west coast
+2. Data about the hospitals where the accidents are occurring. 
+3. Data about the weather conditions in those states/counties.
+4. Data about the road conditions in those states/counties.
+
+**Based on our findings we have two null hypothesis that we are looking to analyze using this dataset:**
+
+1.Null Hypothesis: Accidents happening on the east coast are high.
+
+2.Null Hypothesis: Accidents happening during extreme weather conditions are higher.
+
+To help analyze our hypothesis we conducted a number exploratory analysis on the data.
+
+We created a correlation matrix. In order to create the correlation matrix we first created categorical variables for the following variables:
+
+1. Sunrise_Sunset – converted Day to 1 and Night to 0
+2. Weather_Condition – converted to factor then to numeric for the various weather conditions.
+3. Converted Boolean variables to factor then to numeric:
+4. Amenity – True is 1 and False 0; Bump, Crossing, Give_way, Junction, No_Exit, Railway, Roundabout, Station, Stop, Traffic_Calming, Traffic_Signal, Turning_Loop
+$~$
+
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+# ---- Character to Factor then Numeric ---------
+
+Accidents.dt[,cat.Sunrise_Sunset := ifelse(Sunrise_Sunset == "Day",1,0)]
+
+# character dadf types change to Factor then Numeric
+chr_col <- c("Weather_Condition")
+#str(df[, chr_col])
+
+
+
+Accidents.dt[, chr_col] <- Accidents.dt %>%
+select("Weather_Condition") %>%
+lapply(as.factor)
+
+
+
+Accidents.dt[, chr_col] <- Accidents.dt %>%
+select("Weather_Condition") %>%
+lapply(as.numeric)
+
+# --- Boolean to Factor then Numeric  -------
+boo_col <- c("Amenity", "Bump", "Crossing", "Give_Way", "Junction",
+             "No_Exit", "Railway", "Roundabout", "Station", "Stop",
+             "Traffic_Calming", "Traffic_Signal", "Turning_Loop")
+
+Accidents.dt[, boo_col] <- Accidents.dt %>% 
+  select("Amenity", "Bump", "Crossing", "Give_Way", "Junction",
+         "No_Exit", "Railway", "Roundabout", "Station", "Stop",
+         "Traffic_Calming", "Traffic_Signal", "Turning_Loop") %>% 
+  lapply(as.factor)
+
+Accidents.dt[, boo_col] <- Accidents.dt %>% 
+  select("Amenity", "Bump", "Crossing", "Give_Way", "Junction",
+         "No_Exit", "Railway", "Roundabout", "Station", "Stop",
+         "Traffic_Calming", "Traffic_Signal", "Turning_Loop") %>% 
+  lapply(as.numeric)
+```
+$~$
+\newpage
+
+**Correlation Matrix**
+
+After converting all the variables we created a correlation matrix to see whether there was any relationship or correlation between severity and the other variables that could indicate reasons for accidents. Unfortunately the correlation matrix did not show any useful relationship the highest correlation found was between traffic_calming and bump which is not very useful. 
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.height=10, fig.width= 10, fig.align="centre"}
+
+cor.state <- round(cor(Accidents.dt[,c(1,10,11,12,13,14,15,19,21,23,24,27)]),2)
+melt.cor.state<- reshape2::melt(cor.state)
+
+ggplot(melt.cor.state, aes(x = Var1, y = Var2, fill = value))+
+  scale_fill_gradient(low = "wheat", high = "red")+
+  geom_tile()+
+  geom_text(aes(x = Var1, y = Var2, label = value, vjust = "inward"))+
+  ggtitle("Correlation between the reasons of accidents and severity")+
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+
+```
+$~$
+\newpage
+**US MAP accidents locations:**
+
+Next we decided to identify which coasts had the highest rate of accidents so we created a US map using the Start_Lng and Start_Lat variables and found the most of the accidents occurring were on the east coast which we also confirmed by the bar chart we created based on time zone. This chart showed that the count of accidents in the US/Eastern time zone was highest.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.height=10, fig.width= 10, fig.align="centre"}
+map("usa", fill = TRUE, col = "white", bg = "lightblue")
+points(Accidents.dt$Start_Lng, Accidents.dt$Start_Lat, pch =15, cex  = 0.01, col = "red")
+
+```
+$~$ 
+\newpage 
+
+**Accidents in different Timezone:**
+
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align="centre"}
+ACcidents.df %>% group_by(Timezone) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(fct_reorder(Timezone,n),n, fill = Timezone)) + 
+  geom_bar(stat = "identity", color="orange") +
+  labs(x = "Timezone", y = "Count of Accidents", 
+       title = "Accidents in timezone") + 
+  scale_fill_brewer(palette = rev("Green")) + theme_light(base_size = 16) +
+  scale_y_continuous(labels = scales::comma)+
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+```
+$~$
+**Most number of accidents happen in the Eastern time zone followed by Central, Pacific and Mountain in the time-frame of Jan 2019- June 2020.**
+$~$
+
+$~$
+\newpage
+**Accidents by Weather conditions and severity:**
+
+We also wanted to analyze the effect of weather conditions on the accidents and this bar chart showed the highest number of accidents occurred during fair weather conditions. So from this chart we see that bad weather conditions didn’t necessarily lead to high accidents rates.
+
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.height=8, fig.width= 10,  fig.align="centre"}
+ACcidents.df %>% group_by(Weather_Condition) %>%
+  summarise(n = n()) %>%
+  filter(n > 20000) %>%
+  ggplot(aes(fct_reorder(Weather_Condition, n),n, fill = Weather_Condition)) + 
+  geom_bar(stat = "identity", color="orange") + coord_flip() +
+  labs(x = "Weather Conditions", y = "Count of Accidents", 
+       title = "High Accident Count by Weather Conditions") + 
+  scale_fill_brewer(palette = rev("Oranges")) + theme_light(base_size = 12) +
+  scale_y_continuous(labels = scales::comma)+
+   theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+
+ACcidents.df %>% group_by(Weather_Condition, Severity) %>%
+  summarise(n = n()) %>%
+  filter(n > 700) %>%
+  ggplot(aes(fct_reorder(Weather_Condition, n), n, fill=Weather_Condition)) + 
+  geom_bar(stat = "identity", color = "black") + 
+  facet_wrap(~Severity) +  labs(x = "Weather Condition", y = "Count of Accidents", 
+     title = "High Accident Count by Weather Conditions & Severity") +
+  scale_fill_brewer(palette = rev("Red")) + theme_light(base_size = 12) +
+  theme(strip.background = element_rect(fill="Orange")) +
+  theme(strip.text = element_text(size = 12, color = 'black')) +
+  scale_y_continuous(labels = scales::comma)+
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+
+
+```
+$~$
+We also wanted to look at the severity of the accidents in relation to weather conditions so we created a bar chart in which we grouped by Weather_Condition and Severity variables.  According to the dataset most of the accidents that happened were in severity level of 2 and 3. So we took those 2 levels and created a bar chart by weather condition and severity variables and found the count of accidents was highest in fair weather conditions for both severity levels of 2 and 3. We even noticed that severiyt 4 has very few observation in fair weather condition.
+$~$
+
+$~$
+\newpage
+**City and Severity analysis of Accidents**
+
+
+We also wanted to analyze the rate of accidents by city so we created a bar chart to identify which city has the highest number of accidents, which was Houston. However, our purpose of this analysis is to find those states which have the most severe accidents to identify if they have enough hospitals to accommodate these accidents.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.height=10, fig.width= 10, fig.align="centre"}
+ACcidents.df %>% group_by(City) %>%
+  summarise(n = n()) %>%
+  filter(n >5000) %>%
+  ggplot(aes(fct_reorder(City, n),n, fill = City)) +
+  geom_bar(stat = "identity", color="Red") +
+  labs(x = "Cities", y = "Count of Accidents", 
+       title = "Accidents by city") +  
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+
+ACcidents.df %>% group_by(City, Severity) %>%
+  summarise(n = n()) %>%
+  filter(n > 4000) %>%
+  ggplot(aes(fct_reorder(City, n), n, fill=City)) + 
+  geom_bar(stat = "identity", color = "black") + 
+  facet_wrap(~Severity) +  labs(x = "City", y = "Count of Accidents", 
+     title = "High Accident Count by City & Severity") +
+  scale_fill_brewer(palette = rev("blue")) + theme_light(base_size = 14) +
+  theme(strip.background = element_rect(fill="Orange")) +
+  theme(strip.text = element_text(size = 12, color = 'black')) +
+  scale_y_continuous(labels = scales::comma)+
+    theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+
+```
+$~$
+We created a bar chart using Severity and City variables to identify which city in each of severity levels 2 and 3 had the severest accidents. So in level 2 we see it is Charlotte and in level 3 it is Dallas. This can be confirmed from the US map chart above we did see that the east coast have the highest accidents in particular South Carolina. 
+$~$
+
+$~$
+\newpage
+**States and Severity analysis of accidents:**
+
+
+Like with the cities we also conducted the same analysis with the states and found that California followed by Florida & Texas had the highest rate of accidents.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.height=10, fig.width= 10, fig.align= "centre"}
+ACcidents.df %>% group_by(State) %>%
+  summarise(n = n()) %>%
+  filter(n >5000) %>%
+  ggplot(aes(fct_reorder(State, n),n, fill = State)) + 
+  geom_bar(stat = "identity", color="Red") +
+  labs(x = "State", y = "Count of Accidents", 
+       title = "Accidents by State") +  
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+#(Write which states have higher # of accidents)
+
+ACcidents.df %>% group_by(State, Severity) %>%
+  summarise(n = n()) %>%
+  filter(n > 5000) %>%
+  ggplot(aes(fct_reorder(State, n), n, fill=State)) + 
+  geom_bar(stat = "identity", color = "black") + 
+  facet_wrap(~Severity) +  labs(x = "State", y = "Count of Accidents", 
+     title = "High Accident Count by State & Severity") +
+  scale_fill_brewer(palette = rev("Red")) + theme_light(base_size = 14) +
+  theme(strip.background = element_rect(fill="Orange")) +
+  theme(strip.text = element_text(size = 12, color = 'black')) +
+  scale_y_continuous(labels = scales::comma)+
+    theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+
+```
+
+$~$
+ This is further confirmed when we took the Severity variable to identify the states with the most severe accidents which in both level 2 and 3 shows California. This could be due to the fact that California is a densely populated state with high traffic output.
+ 
+$~$
+
+$~$
+\newpage
+**Analysis of accidents based on time of day:**
+Another factor in analyzing the accidents was to check whether most of the accidents were occurring at night or day and how severe were those accidents. So we created a bar chart using Severity and Sunrise_Sunset variables to analyze which levels of severity where the most accidents were happening, according to day and night. From the chart we see that at daytime the severe accidents were level 2 and at night the most severe accident were of level 2. But day time saw the most accidents. 
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.height=8, fig.width= 8, fig.align= "centre"}
+ggplot(ACcidents.df, aes(Severity, fill = Severity)) + geom_bar(stat = "count", color = "Red") + 
+  facet_wrap(~Sunrise_Sunset)+ labs(x = "", y = "Count of Accidents", 
+  title = "Accidents by Night or Day & Severity")+ scale_fill_manual(values = "count") + theme_light(base_size = 16) +   theme(strip.background = element_rect(fill="Orange")) +
+  theme(strip.text = element_text(size = 16, color = 'black')) +
+  scale_y_continuous(labels = scales::comma)
+
+```
+
+$~$
+\newpage
+For the purposes of running the various algorithms we decided to drop states that had a fewer than 14500 number of accidents. So the accidents data frame now contains states with having number of accidents greater than 14500.
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+drop_State<- ACcidents.df %>% count(State) %>% filter(n < 14500) %>% select(State)
+drop_State <- drop_State$State %>% unlist()
+ACcidents.df <- ACcidents.df %>% 
+  filter(!(State %in% drop_State)) %>% 
+  mutate(State = factor(State))
+ACcidents.df %>% count(State)
+```
+$~$
+As we can see the top ten states are Arizona, California, Florida, North Carolina, New York, Pennsylvania, South Carolina, Tennessee, Texas and Virginia.
+$~$
+
+$~$
+We also wanted to filter out those weather condition that attributed to high accidents rates. So we filtered out those weather condition that had less than 2000 accident rates.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+drop_weather <- ACcidents.df %>% count(Weather_Condition) %>% filter(n < 2000) %>% select(Weather_Condition)
+drop_weather <- drop_weather$Weather_Condition %>% unlist()
+ACcidents.df <- ACcidents.df %>% 
+  filter(!(Weather_Condition %in% drop_weather)) %>% 
+  mutate(Weather_Condition = factor(Weather_Condition))
+ACcidents.df%>% count(ACcidents.df$Weather_Condition, sort = TRUE)
+```
+$~$
+
+So after the filter there are 8 weather condition categories that consists of high accident rates including Fair, Cloudy, Mostly Cloudy, Partly Cloudy, Light Rain, Fog, Rain and Haze.
+$~$
+
+$~$
+\newpage
+**Model Algorithms:**
+
+The purpose of our analysis of the traffic accident was to identify which states had the most severe accidents and whether those states have enough hospitals to deal with these accidents. The goal here is to build a model that can predict severe accidents occurring in the top ten states we have identified above.
+Before running the models, we first made the following changes to the data to ensure that our model works well:
+
+We grouped the four severity levels of 1, 2, 3, & 4 into 2 groups: Severe (Observations from levels 3 & 4) and Not Severe (Observations from levels 1 & 2). The focus of our project is capturing severe accidents and checking if there are enough hospitals in those states to cater to the accidents. Also, we grouped the data so as to capture all the severe accidents.
+$~$
+```{r echo = FALSE, warning=FALSE,fig.width=8, message= FALSE, fig.align= "left"}
+
+df_label <- ACcidents.df %>%
+  mutate("Status" = factor(ifelse(Severity == "3" | Severity == "4", "Severe", "Not Severe"), 
+                           levels = c("Severe", "Not Severe")))
+ACcidents.df<- df_label
+
+ACcidents.df %>% group_by(Weather_Condition, Status) %>%
+  summarise(n = n()) %>%
+  filter(n > 50) %>%
+  ggplot(aes(fct_reorder(Weather_Condition, n), n, fill=Weather_Condition)) + 
+  geom_bar(stat = "identity", color = "black") + 
+  facet_wrap(~Status) +  labs(x = "Weather Condition", y = "Count of Accidents", 
+     title = "High Accident Count by
+     Weather Conditions & Severity") +
+  scale_fill_brewer(palette = rev("Red")) + theme_light(base_size = 14) +
+  theme(strip.background = element_rect(fill="Orange")) +
+  theme(strip.text = element_text(size = 12, color = 'black')) +
+  scale_y_continuous(labels = scales::comma)+
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      vjust = 0.5
+  ))
+```
+
+\newpage
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+nzv <- nearZeroVar(ACcidents.df, saveMetrics = T)
+nzv[nzv$nzv,]
+```
+
+$~$
+
+Some variables are near zero-variance, which means they cannot provide enough information for us because most of the data have the same values for these variables. What's worse is, when we split the dataset, the levels in training dataset and validation dataset may not match.
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+Acc_reg <- ACcidents.df[, c(8,10,11,12,15,24,26,27)]
+head(Acc_reg, 5)
+```
+$~$
+After removing the zero variance variable and analyzing the EDA we came to a conclusion that the observations in Non Severe are much more than the observation in Severe so in order to predict the severe class accurately and main focus of building the models is to predict the severe class we decided to under-sample our data set , so we took 100% of the severe observations and 50% of the total non-severe observation.
+After undersampling the data we decided to create a training and a validation data set, the training data set will help us to train the model and validation data set will help us to test our training model.
+After that we decided to preprocess our model using the training data set that will help us to make every variable unit less.
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+Acc_t<- Acc_reg[Acc_reg$Status =="Severe", ]
+Acc_ns<- Acc_reg[Acc_reg$Status =="Not Severe", ]
+
+Acc_Severe<- Acc_t[sample(nrow(Acc_t), 85000),]
+Acc_nsevere<- Acc_ns[sample(nrow(Acc_ns), 85000),]
+Accident_sample<- rbind(Acc_Severe,Acc_nsevere)
+```
+
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+
+accidents2 <- sample(1:nrow(Accident_sample), 170000, replace = FALSE)
+accidents2 <- Accident_sample[accidents2, ]
+set.seed(42)
+trainingIndices <- createDataPartition(accidents2$Status, p = 0.7, list = FALSE)
+training <- accidents2[trainingIndices, ]
+Validation <- accidents2[-trainingIndices, ]
+
+```
+
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+norm.values  <- preProcess(training, method = c("center", "scale"))
+
+Acc.train.norm <- predict(norm.values,training)
+Acc.valid.norm <- predict(norm.values, Validation)
+head(Acc.train.norm,5)
+
+```
+\newpage
+### **Linear Discriminant Analysis:**
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+lda.training <- lda(Status ~., data = Acc.train.norm)
+lda.training
+
+```
+$~$
+
+We ran the LDA on the training dataset and observed that it is perfectly balanced between the two severity levels with prior probability of 0.5 in each. 
+The coefficients of linear discriminants are the weights attached to the predictors and by themselves are not interpretable. With the help of these coefficients, we can generate the linear discriminant score. We can calculate linear discriminant score by multiplying the coefficients to the actual values of the variables.
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE,fig.height=9, fig.width=9, fig.align= "centre"}
+pred2.training <- predict(lda.training, Acc.train.norm)
+ldahist(pred2.training$x[,1], 
+        g=Acc.train.norm$Status,
+        col = 3)
+```
+
+```{r echo = FALSE, warning=FALSE, message= FALSE,fig.height=9, fig.width=9, fig.align= "centre"}
+pred2.valid <- predict(lda.training,Acc.valid.norm)
+```
+
+$~$
+
+Both the training and validation dataset of which did not show a very clear separation between severe and not severe categories. We see that scores below between 1 and -2 are predicted as severe. The range of scores for the not severe class is large and ranges between -1 and 3.
+$~$
+
+\newpage
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+#(Confusion Matrix - training dataset)
+conf_t<- cbind(prob=pred2.training$posterior[,1],Acc.train.norm)
+confusionMatrix(as.factor(ifelse(conf_t$prob>=0.4, "Severe","Not Severe")),positive = "Severe", as.factor(conf_t$Status))
+
+#(Confusion Matrix - Valid dataset)
+conf_v<- cbind(prob=pred2.valid$posterior[,1],Acc.valid.norm)
+confusionMatrix(as.factor(ifelse(conf_v$prob>=0.4,"Severe", "Not Severe")),positive = "Severe", as.factor(conf_v$Status))
+
+```
+$~$
+
+For our training and validation dataset, we have taken a cutoff of 0.4. This means that all the observations that equal to 0.4 and more, will be classified as severe. The confusion matrix for our training dataset shows us that the accuracy of the model is 63.9% with a high sensitivity of 88.5% with our class of interest being the severe class. On the other hand, we see similar results for our validation dataset, accuracy being 64.3% and sensitivity of 88.8%.
+
+**Overall, our model does a good job in capturing the severe accidents.**
+$~$
+
+$~$
+\newpage
+**Decision Trees:**
+
+Decision trees are in the structure of a tree which makes them extremely easy to understand. 
+The cp value is used to control the size of the decision tree and to select the optimal tree size. If the cost of adding another variable to the decision tree from the current node is above the value of cp, then tree building does not continue. We could also say that tree construction does not continue unless it would decrease the overall lack of fit by a factor of cp. For our model, the cp value of 0.016 is chosen as it corresponds to the highest accuracy achieved in the model of 64%.
+
+
+
+If there isn’t the presence of a traffic signal, and if the observations belong to either of these states (CA, FL, NY, PA, TN, TX, VA), then we reach at the last node of severe accidents and it constitutes 65% of the observations.
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+
+trctrl <- trainControl(method = "cv", n = 20, classProbs = TRUE)
+DTModel <- train(make.names(Status) ~ .,data = Acc.train.norm, method = "rpart",parms = list(split = "gini"),
+trControl = trctrl)
+DTModel
+```
+\newpage
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+Dec_model <- rpart(Status ~ ., data = Acc.train.norm, method = "class", minsplit = 50, cp = 0.017)
+rpart.plot(Dec_model, box.palette = "RdBu", shadow.col = "grey")
+
+
+
+```
+$~$
+
+ Our tree has two decision variables, presence of a traffic signal and state being one of these: CA, FL, NY, PA, TN, TX or VA.It classifies the records on that basis. The first decision variable of the presence of traffic signal has the following meaning, it can have two values of 0 and 1, with 1 indicating the presence of a traffic signal, whereas 0 indicates no traffic signal. In the tree generated by our model, it shows that when there is a traffic signal present, the accidents that are not severe constitute 16% of total observations. Whereas, when there is no traffic signal, the number of accidents that are severe are 84%. This clearly shows that the presence of a traffic signal helps in reducing the severity of accidents. The next decision variable is the state where accidents happen, if it is either one of these states, then 65% of the accidents there are severe and 19% are not severe and are not even in those states.
+$~$
+\newpage
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+#{Confusion Matrix for training dataset}
+PredDTModel <- predict(DTModel, data = Acc.train.norm,type = "prob")
+confusionMatrix(as.factor(ifelse(PredDTModel$Severe>=0.4,"Severe", "Not Severe")),positive = "Severe", as.factor(Acc.train.norm$Status))
+```
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+
+#{Confusion Matrix for Validation dataset}
+dec_conf_vpred <- predict(DTModel, newdata = Acc.valid.norm, type = "prob")
+confusionMatrix(as.factor(ifelse(dec_conf_vpred$Severe>=0.4,"Severe", "Not Severe")),positive = "Severe", as.factor(Acc.valid.norm$Status))
+                                      
+```
+$~$
+
+For our training and validation dataset, we have taken a cutoff of 0.4. This means that all the observations that equal to 0.4 and more, will be classified as severe. The confusion matrix shows us that the accuracy of the model is 63.7% with high sensitivity of 86.8% with our class of interest being the severe class. The validation dataset increases the accuracy by a small amount to 64.2%, and the sensitivity of the model goes up to 87.2%.
+
+$~$
+
+$~$
+\newpage
+**Random Forest-Bagging:**
+
+We also tried modeling our dataset using Bagging. The advantage of using that is that it improves the overfitting problem by the sampling technique it uses, called “bootstrapping”.
+
+These two arguments used in the bagging model are very important:
+
+1.Mtry- Number of variables available for splitting at each tree node 
+
+2.Ntree- Number of trees to grow
+
+In bagging, the OOB estimate of error rate is a useful measure to distinguish between different random forest classifiers. We can, for example, vary the number of trees or the number of variables to be measured, and select the combination that produces the smallest value for this error rate. For our model, the OOB estimate of error rate is 36.19%.
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE}
+#Bagging Model
+set.seed(42)
+model_rf <- randomForest(Status ~ ., data = Acc.train.norm , mtry = 7,
+                         ntree = 50, importance = TRUE,
+                         na.action = na.omit)
+model_rf
+Predrf <- predict(model_rf, data = Acc.train.norm,type = "prob")
+Pred.validation <- predict(model_rf, newdata = Acc.valid.norm)
+```
+$~$
+\newpage
+For our training dataset, we have taken a cutoff of 0.4. This means that all the observations that equal to 0.4 and more, will be classified as severe. The confusion matrix shows us that the accuracy of the model is 63.7% with sensitivity of 86.8% with our class of interest being the severe class. The validation dataset decreases the accuracy to 63.7% and the sensitivity of the model goes down to 74.8%.
+Validation dataset in the Bagging model gives us the worst result, whereas the training dataset gives us the exact same result as the decision tree model.
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+#{Confusion Matrix for training dataset}
+PredDTModel <- predict(DTModel, data = Acc.train.norm,type = "prob")
+PredDTModel <- as.data.frame(PredDTModel)
+confusionMatrix(as.factor(ifelse(PredDTModel$Severe>=0.4,"Severe", "Not Severe")),positive = "Severe", as.factor(Acc.train.norm$Status))
+```
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+#{Confusion Matrix for Validation Dataset}
+rf_vpred<- predict(model_rf, newdata = Acc.valid.norm, type = "prob")
+rf_vpred <- as.data.frame(rf_vpred)
+confusionMatrix(as.factor(ifelse(rf_vpred$Severe>=0.4,"Severe", "Not Severe")),positive = "Severe", as.factor(Acc.valid.norm$Status))
+```
+
+$~$
+**Importance of Variables**
+$~$
+```{r}
+
+importance(model_rf)
+varImpPlot(model_rf)
+```
+$~$
+
+Models	LDA	Decision Tree	Bagging
+
+
+        	   Training	    Validation	Training Validation Training	Validation
+Accuracy	       63.9%	  64.3%	    63.7%	    64.2%	       63.7%	    63.6%
+
+
+Sensitivity	    88.5%	    88.8%	    86.8%	    87.2%	       86.8%	    74.8%
+
+
+
+Specificity	    39.3%	    39.7%	    40.7%	    41.1%	        40.7%	    52.4%
+
+
+Class of Interest	    Severe	Severe	Severe	Severe	Severe	Severe
+
+$~$
+
+$~$
+
+# **Hospitals dataset**
+## **Data Cleaning:**
+$~$
+Like the accidents dataset, a number of challenges were discovered within the hospitals dataset as well. We only kept columns/features that could be used in conjunction with the accidents dataset. In addition, we cleaned up the data removing the null entries. Following is a list of data cleanup techniques used on this dataset:
+
+* Only keep the relevant columns and removed the rest.
+* Removed all hospitals which have non positive bed count. i.e BEDS<=0
+
+Once the above data cleanup techniques are applied, we are left with a clean dataset with the following columns:
+
+1.	CITY – city in which the hospital is located
+2.	STATE – state in which the hospital is located
+3.	TYPE – type of hospital (children, general acute care, long term care etc)
+4.	STATUS – if the hospital is open or close
+5.	BEDS – number of beds
+6.	TRAUMA - level of trauma treatment available 
+
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+#Keeping the important variables
+Hospital <- US_Hospitals [,c(5,6,9,10,16,17)]
+head(Hospital,5)
+```
+## **Data Analysis:**
+$~$
+Once the preliminary cleanup is completed, we analyze the data for interesting features and choose only a subset of this dataset. In this step we also correlate this dataset with the accident dataset to chose the relevant states found in our previous analysis. We filter out the data using the following conditions:
+
+* We kept all the hospitals which are operational. i.e STATUS==OPEN
+* Select entries wherein the hospital type is 'General acute care' or 'critical access'
+* Select the states that correspond to the findings of the accident dataset (CA,TX,SC,FL, etc)
+
+Once the above filtering is completed, the dataset looks like as shown below:
+
+$~$
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+#Kept only the relevant observations
+Hospital1 <- filter(Hospital, STATUS == "OPEN")
+Hospital2 <- Hospital1[Hospital1$TYPE %in% c("GENERAL ACUTE CARE", "CRITICAL ACCESS"), ]
+Hospital3 <- Hospital2[Hospital2$BEDS >= 0, ]
+```
+$~$
+Once we have the filtered dataset, we count the the number of hospitals in each of the states. The count is as shown in the table below:
+
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+Hospital4 <- Hospital3[Hospital3$STATE %in% c("CA","TX","SC","FL","NC","NY","AZ","TN","PA","VA"), ]
+head(Hospital4,10)
+
+```
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+Hospitals_count<- Hospital4%>% count(Hospital4$STATE, sort =FALSE)
+head(Hospitals_count,10)
+```
+
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+
+Accidents_count<- ACcidents.df%>% group_by(State,Status) %>%
+  summarise(severe_acc_counts = n()) %>%
+  filter(severe_acc_counts> 50)
+
+Accidents_count<- as.data.frame(Accidents_count)
+Accidents_count$Status<- as.character(Accidents_count$Status)
+#Accidents_count%>% as.character(Accidents_count$Status)
+
+#{Subsetting}
+Accidents_severe <- Accidents_count[Accidents_count$Status=="Severe", ]
+Accidents_severe
+Hospitals_count<- as.data.frame(Hospitals_count)
+Hospitals_count
+
+#{Combining two datasets}
+Counts<- cbind(Accidents_severe, Hospitals_count)
+Counts<- as.data.frame(Counts)
+Counts$Accident_ratio <- NULL
+Counts$Accident_to_Hospital_ratio <- Counts$severe_acc_counts/ Counts$n
+Counts
+```
+$~$
+In order to make a recommendation, we use the readiness ratio as a measure of readiness of a state in case of accidents. This ratio is defined as the ratio of number of accidents in the state to the number of hospitals. The lower the ratio, more ready the state is in case of accidents. Higher the ratio indicates that the states need more hospitals in critical locations. The ratios for various states can be seen below:
+$~$
+```{r echo = FALSE, warning=FALSE, message= FALSE, fig.align= "centre"}
+ggplot(data = Counts)+
+  geom_histogram( aes(State, Accident_to_Hospital_ratio),stat="identity", fill="salmon")+
+  ggtitle("Accidents to Hospitals Ratio by State")
+#(higher ratio = more number of accidents happening with lesser number of hospitals)
+```
+
+$~$
+\newpage
+**Conclusion: **
+
+The analysis of a large set of data takes some extensive pre-planning as it's quite easy to get lost amongst all the potential data related questions. Data cleaning and processing is the most important aspect in any data analysis, so we first decided to analyze the data of 2019 and 2020, which rescinded our observations to 500,000, and after that in model building phase we took a sample of this data 500,000 observations. 
+
+During our exploratory data analysis, we expected clearer correlations between bad weather and the number of accidents. However, here we can see that more accidents occur when the weather is Fair/clear. This may be because people drive more carefully when the weather is bad. 
+
+After analyzing the observations and performing EDA, we came to a conclusion that majority of the accidents had a severity of degree 2 which is classified as not severe in our model, but in the model building phase our main aim was to predict the most severe accidents, so we decided to under sample our model wherein we took all the observations from the severe category i.e. severity of 3 & 4 and 50% observation from Non severe category i.e. 1 & 2. 
+
+In the model building phase we build three models Linear Discriminant Analysis, Regression Tree and Random Forest, out of these three models the best accuracy and the sensitivity was for LDA so we decided to present this model that would predict more severe accidents to the state government and Traffic law enforcement that looks after the Traffic lights. 
+
+
+**State Government:**
+We have analyzed the hospital data set in top 10 states that have most accidents and have come up with a severe accident to the number of hospital ratio. This analysis and with the help of the model will help the state government to build more hospitals that can cater to more severe accidents. After analyzing the data, we came to a conclusion that, South Carolina has a ratio of 94.5 accidents per hospital and Virginia has a ratio of 70, therefore, the respective state governments should take quick actions and build more number of hospitals. 
+
+ 
+**Traffic law enforcement:**
+After running the Regression Tree Model, we observed that the most important variable was Traffic signal and the most severe accidents happen where there are no traffic signals. Hence, the traffic police need to focus in these areas to reduce accidents in collaboration with the state government. If these are due to some infrastructure problems, then they need to be resolved. 
+
+Though there might be many factors such as driving under influence, texting while driving, speeding etc. that have not been considered while analyzing the US accident data set, these factors constitute to the most severe and high number of accidents, there must be strict rules laid down by the government. These all factors in our model may be hiding in the error term and may constitute to some sort of endogeneity in our model or homogeneity, which may overstate or understate the true value of our parameter but this is the best our model could predict. 
+
+Our main focus of building the model was to identify if there were enough number of hospitals in that state that can reach the accident spot on time and treat the person on time. 
+
+Our model is doing a great job by predicting the maximum severe accidents, this will help the police, ambulance and other resources to reach on time when the severity of the accident is the highest. Though our model is not very well in predicting the Non-Severe accidents which may be a concern as there would be a waste of resources, but then we would like to say is better safe than sorry!! 
+
+
+
