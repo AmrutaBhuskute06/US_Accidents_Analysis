@@ -16,5 +16,7 @@ The purpose of our analysis is to build a model that focuses on the states where
 We will use this model in collaboration with the information from the hospital dataset to identify which states are lacking hospital beds so that we can make recommendations to the local government to increase resources and finance to accommodate more beds in those states with the highest severe accidents and help save precious lives. 
 
 
+### Team Members
+Sahil Shah, Darshni Vora, Amber Akhtar, Amruta Bhuskute
 
 The results above are contributed by all members in the group.
