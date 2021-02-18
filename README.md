@@ -9,7 +9,7 @@ Our dataset comprises of the data regarding the accidents that took place betwee
 
 The original US_Accident data can be accessed on: https://www.kaggle.com/sobhanmoosavi/us-accidents
 
-Number of Hospitals across United States: https://www.kaggle.com/carlosaguayo/usa-hospitals
+The original number of hospitals across United States data can be accessed on: https://www.kaggle.com/carlosaguayo/usa-hospitals
 
 ## Project Objectives
 The purpose of our analysis is to build a model that focuses on the states where the rate of accidents are highest and are the most severe.
