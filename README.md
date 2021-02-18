@@ -6,8 +6,10 @@ Our project is aimed at analyzing the US traffic accidents data to identify what
 ## Data Source
 
 Our dataset comprises of the data regarding the accidents that took place between February 2016 and June 2020 in 49 states of the United States.The dataset contained around 3.5 million records. 
+
 The original US_Accident data can be accessed on: https://www.kaggle.com/sobhanmoosavi/us-accidents
-USA Hospitals across United States: https://www.kaggle.com/carlosaguayo/usa-hospitals
+
+Number of Hospitals across United States: https://www.kaggle.com/carlosaguayo/usa-hospitals
 
 ## Project Objectives
 The purpose of our analysis is to build a model that focuses on the states where the rate of accidents are highest and are the most severe.
