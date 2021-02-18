@@ -1,7 +1,6 @@
 # US_Accidents_Analysis
 ## Summary
-Our project is aimed at analyzing the US traffic accidents data to identify what are the causes of road accidents.It also shows the cities and states where the accidents are occurring. We formulated our hypothesis based on this information of whether weather conditions played a role in the accidents and in which regions of the country are the most accidents occurring. In addition to identifying the reasons for the accidents we also wanted to identify whether there are enough hospitals in the areas to accommodate the increasing number of accidents. If there are shortages we want to make recommendations to the local government to consider adding more hospitals that in turn could help save lives.
-
+Our project is aimed at analyzing the US traffic accidents data to identify what are the causes of road accidents.It also shows the cities and states where the accidents are occurring. We formulated our hypothesis based on this information of whether weather conditions played a role in the accidents and in which regions of the country are the most accidents occurring. In addition to identifying the reasons for the accidents we also wanted to identify whether there are enough hospitals in the areas to accommodate the increasing number of accidents.
 
 
 ## Data Source
