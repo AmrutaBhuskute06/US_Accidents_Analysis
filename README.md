@@ -1,4 +1,4 @@
-# US_Accidents_Analysis
+# US_Accidents_Analysis using RStudio
 ## Summary
 Our project is aimed at analyzing the US traffic accidents data to identify what are the causes of road accidents.It also shows the cities and states where the accidents are occurring. We formulated our hypothesis based on this information of whether weather conditions played a role in the accidents and in which regions of the country are the most accidents occurring. In addition to identifying the reasons for the accidents we also wanted to identify whether there are enough hospitals in the areas to accommodate the increasing number of accidents.
 
@@ -18,6 +18,6 @@ We will use this model in collaboration with the information from the hospital d
 
 ## Team Members
 
-Sahil Shah, Darshni Vora, Amber Akhtar, Amruta Bhuskute
+Amruta Bhuskute, Sahil Shah, Darshni Vora, Amber Akhtar
 
 The results above are contributed by all members in the group.
